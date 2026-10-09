@@ -1,11 +1,366 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Mon Budget</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16334d">
+<title>Mon Budget V3.8</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--bg:#f3f6f8;--card:#fff;--ink:#17232e;--muted:#6b7885;--line:#dce4ea;--p:#16334d;--p2:#2b628d;--good:#14764b;--bad:#b23d3d;--warn:#9a6914;--r:16px;--shadow:0 5px 22px #16334d12}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}button,input,select{font:inherit}
+button{cursor:pointer}.app{max-width:1500px;margin:auto;padding:14px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}h1{font-size:24px;margin:0}.sub{font-size:13px;color:var(--muted)}
+.nav{display:flex;gap:7px;overflow:auto;margin-bottom:12px}.nav button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;white-space:nowrap}.nav button.active{background:var(--p);color:#fff;border-color:var(--p)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:15px}
+.kpi .label{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.04em}.kpi .value{font-size:23px;font-weight:800;margin-top:4px}.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 11px}.btn.primary{background:var(--p);color:#fff;border-color:var(--p)}.btn.small{font-size:12px;padding:6px 8px}.btn.danger{color:var(--bad)}
+.toolbar,.section-title,.monthbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.toolbar{margin-bottom:10px}.section-title{margin-bottom:10px}.section-title h2{font-size:18px;margin:0}
+.filters{display:grid;grid-template-columns:2fr repeat(4,1fr) auto;gap:7px;margin-bottom:10px}
+input,select{border:1px solid var(--line);border-radius:9px;padding:8px 9px;background:#fff;color:var(--ink);min-width:0}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:8px 9px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left}th{background:#f7f9fa;color:var(--muted);font-size:11px;position:sticky;top:0;z-index:1}td.num{text-align:right}
+.status{border:0;border-radius:99px;padding:4px 8px;font-size:11px}.status.ok{background:#e5f5ec;color:var(--good)}.status.pending{background:#fff1d7;color:var(--warn)}
+.hint{color:var(--muted);font-size:12px}.empty{text-align:center;color:var(--muted);padding:30px}.chart{height:300px;width:100%}
+.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:var(--muted)}
+.modal{display:none;position:fixed;inset:0;background:#0b1725a8;z-index:50;align-items:center;justify-content:center;padding:14px}.modal.open{display:flex}.modalbox{background:#fff;width:min(820px,100%);max-height:94vh;overflow:auto;border-radius:18px;padding:18px}.modal-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:15px}
+.pill{display:inline-block;background:#edf2f5;border-radius:99px;padding:3px 7px;font-size:11px}.toast{position:fixed;right:14px;bottom:14px;background:var(--p);color:#fff;border-radius:10px;padding:11px 14px;display:none;z-index:100}.toast.show{display:block}
+.switch{display:flex;gap:7px;align-items:center}.switch input{width:auto}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.summary div{background:#f8fafb;border:1px solid var(--line);border-radius:10px;padding:10px}.summary b{display:block;font-size:18px}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(3,1fr)}.filters{grid-template-columns:2fr 1fr 1fr}.filters button{grid-column:auto}.summary{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.app{padding:9px}.grid{grid-template-columns:repeat(2,1fr);gap:7px}.card{padding:12px}.kpi .value{font-size:19px}.filters{grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary{grid-template-columns:1fr}h1{font-size:21px}}
+</style>
 </head>
 <body>
-  <h1>Mon Budget</h1>
-  <p>Application en cours de préparation.</p>
-</body>
+<div class="app">
+<header>
+  <div><h1>Mon Budget <span class="pill">V3.8</span></h1><div class="sub">Compte courant · Livret A · opérations réelles · projection 10 ans · synchronisation Google Drive</div></div>
+  <button class="btn primary" onclick="openOp()">＋ Opération</button>
+</header>
+<nav class="nav">
+<button class="active" data-p="dash" onclick="page('dash')">Tableau de bord</button>
+<button data-p="ops" onclick="page('ops')">Opérations</button>
+<button data-p="proj" onclick="page('proj')">Projection</button>
+<button data-p="rec" onclick="page('rec')">Récurrences</button>
+<button data-p="cat" onclick="page('cat')">Catégories</button>
+<button data-p="set" onclick="page('set')">Réglages</button>
+</nav>
+
+<section id="dash">
+<div class="grid">
+<div class="card kpi"><div class="label">Compte courant réel</div><div class="value" id="dCurrent">0 €</div><div class="hint">Solde de départ + opérations pointées</div><label for="dCurrentInput">Montant de départ modifiable</label><input id="dCurrentInput" type="number" step="0.01" inputmode="decimal"><button class="btn small" onclick="setRealStartingBalance('current')">Enregistrer</button></div>
+<div class="card kpi"><div class="label">Livret A réel</div><div class="value" id="dSave">0 €</div><div class="hint">Solde de départ + opérations pointées</div><label for="dSaveInput">Montant de départ modifiable</label><input id="dSaveInput" type="number" step="0.01" inputmode="decimal"><button class="btn small" onclick="setRealStartingBalance('savings')">Enregistrer</button></div>
+<div class="card kpi"><div class="label">Dépenses saisies</div><div class="value bad" id="dSpent">0 €</div><div class="hint" id="dSpentHint"></div></div>
+<div class="card kpi"><div class="label">À venir</div><div class="value warn" id="dPlanned">0 €</div><div class="hint">ce mois</div></div>
+<div class="card kpi"><div class="label">Fin de mois prévue</div><div class="value" id="dEnd">0 €</div><div class="hint">récurrences incluses</div></div>
+</div>
+<div class="card">
+<div class="monthbar"><button class="btn" onclick="moveMonth(-1)">‹</button><strong id="dMonth"></strong><button class="btn" onclick="moveMonth(1)">›</button></div>
+<div class="section-title"><h2>Ce mois-ci</h2><button class="btn small" onclick="page('ops')">Voir toutes les opérations</button></div>
+<div id="dashOps"></div>
+</div>
+<div class="card" style="margin-top:12px"><div class="section-title"><h2>Évolution du compte</h2><span class="hint">12 mois</span></div><canvas id="dashChart" class="chart"></canvas></div>
+</section>
+
+<section id="ops" style="display:none">
+<div class="card">
+<div class="section-title"><h2>Opérations</h2><button class="btn primary" onclick="openOp()">＋ Ajouter</button></div>
+<div class="filters">
+<input id="q" placeholder="Rechercher une opération…" oninput="renderOps()">
+<select id="fm" onchange="renderOps()"><option value="">Tous les mois</option></select>
+<select id="ft" onchange="renderOps()"><option value="">Tous les types</option><option value="income">Recettes</option><option value="expense">Dépenses</option><option value="transfer">Virements</option></select>
+<select id="fs" onchange="renderOps()"><option value="">Tous les statuts</option><option value="planned">À venir</option><option value="debited">Pointées</option></select>
+<select id="fa" onchange="renderOps()"><option value="">Tous les comptes</option><option value="current">Courant</option><option value="savings">Livret A</option></select>
+<button class="btn" onclick="resetFilters()">Réinitialiser</button>
+</div>
+<div class="summary"><div>Dépenses <b class="bad" id="sumExp">0 €</b></div><div>Recettes <b class="good" id="sumInc">0 €</b></div><div>À venir <b class="warn" id="sumPlan">0 €</b></div></div>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Compte</th><th>Montant</th><th>État</th><th>Source</th><th></th></tr></thead><tbody id="opsBody"></tbody></table></div>
+</div>
+</section>
+
+<section id="proj" style="display:none">
+<div class="card">
+<div class="section-title"><h2>Projection sur 10 ans</h2><span class="hint">120 mois — récurrences calculées selon leur fréquence</span></div>
+<div class="toolbar">
+<div><button class="btn small" onclick="projRange(1)">1 an</button> <button class="btn small" onclick="projRange(5)">5 ans</button> <button class="btn small" onclick="projRange(10)">10 ans</button></div>
+<button class="btn" onclick="exportCSV()">Exporter CSV</button>
+</div>
+<canvas id="projChart" class="chart"></canvas>
+<div class="table-wrap"><table><thead><tr><th>Mois</th><th>Solde début</th><th>Recettes</th><th>Fixes/récurrents</th><th>Occasionnelles</th><th>Livret</th><th>Solde fin</th><th>Livret A</th></tr></thead><tbody id="projBody"></tbody></table></div>
+</div>
+</section>
+
+<section id="rec" style="display:none">
+<div class="card">
+<div class="section-title"><h2>Récurrences</h2><button class="btn primary" onclick="openRec()">＋ Ajouter</button></div>
+<p class="hint">La fréquence peut être mensuelle, trimestrielle, semestrielle, annuelle ou personnalisée. Chaque échéance apparaît automatiquement comme « Prévue ». Elle reste indépendante des autres échéances : tu peux la pointer, modifier son montant/date ou la laisser prévue sans modifier la règle générale.</p>
+<div class="table-wrap"><table><thead><tr><th>Libellé</th><th>Type</th><th>Fréquence</th><th>Prochaine échéance</th><th>Montant</th><th>Compte</th><th>Période</th><th>Actif</th><th></th></tr></thead><tbody id="recBody"></tbody></table></div>
+</div>
+</section>
+
+<section id="cat" style="display:none">
+<div class="card"><div class="section-title"><h2>Catégories</h2><button class="btn primary" onclick="openCat()">＋ Ajouter</button></div><div class="table-wrap"><table><thead><tr><th>Type</th><th>Catégorie</th><th>Sous-catégorie</th><th></th></tr></thead><tbody id="catBody"></tbody></table></div></div>
+</section>
+
+<section id="set" style="display:none">
+<div class="card">
+<div class="section-title"><h2>Réglages</h2></div>
+<div class="formgrid">
+<div class="field"><label>Montant de départ du compte courant</label><input id="sCurrent" type="number" step=".01"></div>
+<div class="field"><label>Montant de départ du Livret A</label><input id="sSave" type="number" step=".01"></div>
+<div class="field"><label>Date de départ</label><input id="sStart" type="date"></div>
+<div class="field"><label>Projection en années</label><input id="sYears" type="number" min="1" max="30"></div>
+</div>
+<div style="margin-top:12px"><button class="btn primary" onclick="saveSettings()">Enregistrer</button> <button class="btn" onclick="backup()">Sauvegarder</button> <button class="btn" onclick="document.getElementById('restore').click()">Restaurer</button> <button class="btn" onclick="backupForDrive()">Sauvegarde Drive / OneDrive</button> <button class="btn danger" onclick="resetAll()">Tout effacer</button></div>
+<hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+<h3>Synchronisation privée Google Drive</h3>
+<p class="hint">Tes données restent sur cet appareil et peuvent être copiées dans un dossier privé de Google Drive réservé à l’application. Utilise le même compte Google sur tes deux appareils. La connexion peut être à renouveler.</p>
+<div class="toolbar"><button class="btn primary" onclick="driveConnect()">Se connecter à Google</button> <button class="btn" onclick="driveSync()">Synchroniser maintenant</button> <button class="btn" onclick="driveDisconnect()">Déconnecter</button></div>
+<div id="cloudMsg" class="hint" role="status" aria-live="polite" style="margin-top:10px">Google Drive non connecté.</div>
+<p class="hint">En cas de modifications différentes sur les deux appareils, l’application te demandera quelle version conserver et téléchargera une sauvegarde avant tout remplacement. Conserve aussi tes sauvegardes JSON manuelles.</p>
+</div>
+</section>
+</div>
+
+<div class="modal" id="opModal"><div class="modalbox">
+<div class="section-title"><h2 id="opTitle">Opération</h2><button class="btn" onclick="closeM('opModal')">✕</button></div>
+<div class="formgrid">
+<div class="field"><label>Date</label><input id="oDate" type="date"></div><div class="field"><label>Libellé</label><input id="oLabel"></div>
+<div class="field"><label>Type</label><select id="oType"><option value="expense">Dépense</option><option value="income">Recette</option><option value="transfer">Virement</option></select></div>
+<div class="field"><label>Montant</label><input id="oAmount" type="number" step=".01"></div>
+<div class="field"><label>Catégorie / sous-catégorie</label><select id="oCat"></select></div>
+<div class="field"><label>Compte</label><select id="oAccount"><option value="current">Compte courant</option><option value="savings">Livret A</option></select></div>
+<div class="field"><label>État</label><select id="oStatus"><option value="planned">À venir</option><option value="debited">Pointée / débitée</option></select></div>
+<div class="field"><label>Note</label><input id="oNote"></div>
+</div>
+<div class="modal-actions"><button class="btn" onclick="closeM('opModal')">Annuler</button><button class="btn primary" onclick="saveOp()">Enregistrer</button></div>
+</div></div>
+
+<div class="modal" id="recModal"><div class="modalbox">
+<div class="section-title"><h2 id="recTitle">Récurrence</h2><button class="btn" onclick="closeM('recModal')">✕</button></div>
+<div class="formgrid">
+<div class="field"><label>Libellé</label><input id="rLabel"></div><div class="field"><label>Type</label><select id="rType"><option value="expense">Dépense</option><option value="income">Recette</option><option value="transfer">Virement</option></select></div>
+<div class="field"><label>Montant</label><input id="rAmount" type="number" step=".01"></div><div class="field"><label>Compte</label><select id="rAccount"><option value="current">Compte courant</option><option value="savings">Livret A</option></select></div>
+<div class="field"><label>Catégorie</label><select id="rCat"></select></div>
+<div class="field"><label>Jour du mois</label><input id="rDay" type="number" min="1" max="31" value="5"></div>
+<div class="field"><label>Fréquence</label><select id="rFreq"><option value="monthly">Tous les mois</option><option value="quarterly">Tous les 3 mois</option><option value="halfyear">Tous les 6 mois</option><option value="yearly">Tous les ans</option><option value="customMonths">Tous les X mois</option><option value="customYears">Tous les X ans</option></select></div>
+<div class="field" id="rIntervalWrap"><label>Intervalle X</label><input id="rInterval" type="number" min="1" value="2"></div>
+<div class="field"><label>Première échéance</label><input id="rStart" type="date"></div><div class="field"><label>Dernière échéance (facultatif)</label><input id="rEnd" type="date"></div>
+<div class="field"><label>Actif</label><select id="rActive"><option value="true">Oui</option><option value="false">Non</option></select></div>
+</div>
+<div class="hint" style="margin-top:10px">Exemples : assurance annuelle → « Tous les ans » ; taxe tous les 2 ans → « Tous les X ans / 2 » ; contrôle tous les 18 mois → « Tous les X mois / 18 ».</div>
+<div class="modal-actions"><button class="btn" onclick="closeM('recModal')">Annuler</button><button class="btn primary" onclick="saveRec()">Enregistrer</button></div>
+</div></div>
+
+<div class="modal" id="catModal"><div class="modalbox">
+<div class="section-title"><h2>Catégorie</h2><button class="btn" onclick="closeM('catModal')">✕</button></div>
+<div class="formgrid"><div class="field"><label>Type</label><select id="cType"><option value="expense">Dépense</option><option value="income">Recette</option><option value="transfer">Virement</option></select></div><div class="field"><label>Catégorie</label><input id="cMain"></div><div class="field full"><label>Sous-catégorie</label><input id="cSub"></div></div>
+<div class="modal-actions"><button class="btn" onclick="closeM('catModal')">Annuler</button><button class="btn primary" onclick="saveCat()">Enregistrer</button></div>
+</div></div>
+<input id="restore" type="file" accept=".json" style="display:none">
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY='monBudgetV34';const LEGACY_KEY='monBudgetV2';
+// Google Drive : seul l'identifiant public OAuth est intégré ; aucun secret.
+const GOOGLE_CLIENT_ID='349036322017-2ivj3k7gu3it6pl7kft9tr30ntb2uq14.apps.googleusercontent.com';
+const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.appdata';
+const DRIVE_NAME='mon-budget-v38.json';
+const DRIVE_BASE_KEY='monBudgetDriveBaseV38';
+let driveToken='',driveTokenClient=null,driveFileId='',driveBusy=false,driveTimer=null;
+let driveBaseline=sessionStorage.getItem(DRIVE_BASE_KEY)||null;
+let driveReady=false;
+function driveStatus(message){document.getElementById('cloudMsg').textContent=message}
+function driveInit(){if(!window.google?.accounts?.oauth2){driveStatus('Connexion Google en cours de chargement. Réessaie dans quelques secondes.');return false}
+ if(!driveTokenClient)driveTokenClient=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:DRIVE_SCOPE,callback:async response=>{
+ if(response.error||!response.access_token){driveStatus('Connexion Google refusée ou interrompue.');return}
+ driveToken=response.access_token;driveReady=false;driveStatus('Connecté à Google. Vérification du budget…');await driveSync();
+ }});return true}
+function driveConnect(){if(!driveInit())return;driveTokenClient.requestAccessToken({prompt:'consent'})}
+function driveDisconnect(){if(driveToken&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(driveToken,()=>{});driveToken='';driveReady=false;driveFileId='';driveBaseline=null;sessionStorage.removeItem(DRIVE_BASE_KEY);driveStatus('Google Drive déconnecté. Les données locales sont conservées.')}
+async function driveRequest(url,options={}){
+ const response=await fetch(url,{...options,headers:{Authorization:'Bearer '+driveToken,...options.headers}});
+ if(!response.ok){if(response.status===401){driveToken='';driveReady=false;throw Error('Session Google expirée. Clique sur « Se connecter à Google ».')}
+ throw Error('Google Drive : erreur '+response.status+' — '+(await response.text()).slice(0,160))}
+ return response;
+}
+function driveSnapshot(){return JSON.stringify(db)}
+function driveBase(value){driveBaseline=value;sessionStorage.setItem(DRIVE_BASE_KEY,value)}
+function driveValid(x){return x&&typeof x==='object'&&!Array.isArray(x)&&x.settings&&typeof x.settings==='object'&&Array.isArray(x.operations)&&Array.isArray(x.recurring)&&Array.isArray(x.categories)}
+function driveBackup(data,label){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Mon_Budget_securite_'+label+'_'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000)}
+async function driveFind(){const r=await driveRequest('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=nextPageToken,files(id,name,modifiedTime)&page_size=100');const j=await r.json();const found=(j.files||[]).filter(x=>x.name===DRIVE_NAME).sort((a,b)=>b.modifiedTime.localeCompare(a.modifiedTime));driveFileId=found[0]?.id||'';return driveFileId}
+async function driveRead(){const r=await driveRequest('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(driveFileId)+'?alt=media');const raw=await r.text();const parsed=JSON.parse(raw);if(!driveValid(parsed))throw Error('Le fichier Drive ne contient pas un budget valide.');return parsed}
+async function driveWrite(){const payload=driveSnapshot();if(driveFileId){await driveRequest('https://www.googleapis.com/upload/drive/v3/files/'+encodeURIComponent(driveFileId)+'?uploadType=media',{method:'PATCH',headers:{'Content-Type':'application/json'},body:payload})}
+ else{const boundary='budget_v38_'+Date.now(),body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify({name:DRIVE_NAME,parents:['appDataFolder'],mimeType:'application/json'})+'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+payload+'\r\n--'+boundary+'--';const r=await driveRequest('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});driveFileId=(await r.json()).id}
+ driveBase(payload);driveStatus('🟢 Budget synchronisé avec Google Drive à '+new Date().toLocaleTimeString('fr-FR'));}
+async function driveSync(){if(!driveToken){driveStatus('Clique d’abord sur « Se connecter à Google ».');return}if(driveBusy)return;driveBusy=true;
+ try{
+  await driveFind();
+  if(!driveFileId){await driveWrite();driveReady=true;return}
+  const remote=await driveRead(),remoteText=JSON.stringify(remote),localText=driveSnapshot();
+  if(remoteText===localText){driveBase(localText);driveReady=true;driveStatus('🟢 Budget à jour sur les deux appareils.');return}
+  // Un appareil qui vient de se connecter ne connaît pas l'état précédent : aucun écrasement silencieux.
+  const localChanged=driveBaseline===null||localText!==driveBaseline;
+  const remoteChanged=driveBaseline===null||remoteText!==driveBaseline;
+  if(localChanged&&remoteChanged){
+   const choice=prompt('ATTENTION : deux budgets différents ont été trouvés.\n\nTape DRIVE pour utiliser Google Drive.\nTape LOCAL pour utiliser ce budget et remplacer celui de Drive.\n\nUne sauvegarde de la version remplacée sera téléchargée.\n\nClique sur Annuler pour ne rien changer.');
+   if(choice===null||!['DRIVE','LOCAL'].includes(choice.trim().toUpperCase())){driveStatus('⚠️ Synchronisation suspendue : aucun budget remplacé.');return}
+   if(choice.trim().toUpperCase()==='DRIVE'){driveBackup(db,'avant_restauration_locale');db=remote;db.occurrenceStates=db.occurrenceStates||{};localStorage.setItem(KEY,JSON.stringify(db));driveBase(remoteText);renderAll();driveStatus('🟢 Budget Google Drive chargé. Sauvegarde locale téléchargée.')}
+   else{driveBackup(remote,'avant_remplacement_drive');await driveWrite()}
+
+  }else if(remoteChanged){db=remote;db.occurrenceStates=db.occurrenceStates||{};localStorage.setItem(KEY,JSON.stringify(db));driveBase(remoteText);renderAll();driveStatus('🟢 Modifications Google Drive récupérées.')}
+  else if(localChanged){await driveWrite()}
+  driveReady=true;
+ }catch(e){driveStatus('❌ '+(e.message||e));driveReady=false}
+ finally{driveBusy=false}
+}
+function scheduleCloudPush(){if(!driveToken||!driveReady)return;clearTimeout(driveTimer);driveTimer=setTimeout(()=>driveSync(),1600)}
+const today=new Date().toLocaleDateString('en-CA'), uid=()=>crypto.randomUUID?.()||Date.now()+'-'+Math.random();
+const money=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(Number(n)||0);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const mk=d=>{let x=new Date(d);return x.toISOString().slice(0,7)}, ml=m=>new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'}).format(new Date(m+'-01T12:00'));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const defaults={
+ settings:{current:0,savings:0,start:today,years:10},
+ occurrenceStates:{},
+ categories:[
+ ['expense','Vie courante','Courses'],['expense','Vie courante','Gasoil / carburant'],['expense','Vie courante','Restaurant'],['expense','Vie courante','Tabac'],['expense','Vie courante','Vacances'],['expense','Vie courante','Pharmacie'],['expense','Vie courante','Vêtements'],['expense','Vie courante','Loisirs'],['expense','Vie courante','Cadeaux'],['expense','Vie courante','Maison / bricolage'],['expense','Vie courante','Électroménager'],['expense','Vie courante','Animaux'],['expense','Vie courante','Santé'],['expense','Vie courante','Impôts / taxes'],['expense','Vie courante','Frais bancaires'],['expense','Vie courante','Divers'],
+ ['expense','Logement','Crédit / loyer'],['expense','Logement','Électricité'],['expense','Logement','Eau'],['expense','Logement','Internet'],['expense','Logement','Téléphone'],['expense','Logement','Location frigo'],['expense','Logement','Location ordinateur'],
+ ['expense','Assurances','GMF'],['expense','Assurances','Mutuelle'],['expense','Assurances','Habitation'],['expense','Assurances','Auto'],['expense','Assurances','Autre'],
+ ['expense','Famille','Pension alimentaire'],['expense','Famille','Virement à Carole'],['expense','Famille','Virement à Mounia'],['expense','Famille','Virement à Léa'],['expense','Famille','Croix-Rouge'],
+ ['expense','Crédits','Crédit auto'],['expense','Crédits','Crédit immobilier'],['expense','Crédits','Crédit consommation'],['expense','Crédits','Autre crédit'],
+ ['expense','Abonnements','Netflix'],['expense','Abonnements','Streaming'],['expense','Abonnements','Musique'],['expense','Abonnements','Autre abonnement'],
+ ['income','Revenus','Salaire'],['income','Revenus','Pension'],['income','Revenus','Autre revenu'],
+ ['transfer','Épargne','Versement Livret A'],['transfer','Épargne','Retrait Livret A']
+ ],operations:[],recurring:[]
+};
+let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY)||'null')||clone(defaults);db.occurrenceStates=db.occurrenceStates||{};let editOpId=null,editRecId=null,viewMonth=mk(today),projectionYears=10;
+
+function save(){localStorage.setItem(KEY,JSON.stringify(db));scheduleCloudPush()}
+function toast(s){let e=document.getElementById('toast');e.textContent=s;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1800)}
+function page(p){document.querySelectorAll('section[id]').forEach(x=>x.style.display='none');document.getElementById(p).style.display='block';document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));if(p==='dash')renderDash();if(p==='ops')renderOps();if(p==='proj')renderProj();if(p==='rec')renderRec();if(p==='cat')renderCat();if(p==='set')renderSet()}
+function closeM(id){document.getElementById(id).classList.remove('open')}function openM(id){document.getElementById(id).classList.add('open')}
+function cats(type){return db.categories.filter(c=>c[0]===type)}
+function fillCat(id,type,value=''){let e=document.getElementById(id);e.innerHTML='<option value="">— choisir —</option>';cats(type).forEach(c=>{let v=c[1]+' / '+c[2];e.innerHTML+=`<option value="${esc(v)}" ${v===value?'selected':''}>${esc(v)}</option>`})}
+document.getElementById('oType').onchange=()=>fillCat('oCat',oType.value);document.getElementById('rType').onchange=()=>fillCat('rCat',rType.value);
+function openOp(id=null){editOpId=id;let o=db.operations.find(x=>x.id===id);opTitle.textContent=o?'Modifier l’opération':'Nouvelle opération';oDate.value=o?.date||today;oLabel.value=o?.label||'';oType.value=o?.type||'expense';oAmount.value=o?Math.abs(o.amount):'';oAccount.value=o?.account||'current';oStatus.value=o?.status||'planned';oNote.value=o?.note||'';fillCat('oCat',oType.value,o?.category||'');openM('opModal')}
+function saveOp(){let amount=Math.abs(Number(oAmount.value)||0),type=oType.value;if(!amount||!oDate.value||!oLabel.value.trim())return toast('Date, libellé et montant sont obligatoires.');let o={id:editOpId||uid(),date:oDate.value,label:oLabel.value.trim(),type,amount:(type==='income'||(type==='transfer'&&oAccount.value==='savings')?1:-1)*amount,category:oCat.value,account:oAccount.value,toAccount:type==='transfer'?(oAccount.value==='current'?'savings':'current'):undefined,status:oStatus.value,note:oNote.value};let i=db.operations.findIndex(x=>x.id===o.id);i<0?db.operations.push(o):db.operations[i]=o;save();closeM('opModal');renderAll();toast('Opération enregistrée')}
+function toggle(id){let o=db.operations.find(x=>x.id===id);if(o){o.status=o.status==='debited'?'planned':'debited';save();renderAll()}}
+function delOp(id){if(confirm('Supprimer cette opération ?')){db.operations=db.operations.filter(x=>x.id!==id);save();renderAll()}}
+function resetFilters(){q.value='';fm.value='';ft.value='';fs.value='';fa.value='';renderOps()}
+function renderOps(){
+ let months=[...new Set(db.operations.map(o=>o.date.slice(0,7)))].sort().reverse();let old=fm.value;fm.innerHTML='<option value="">Tous les mois</option>'+months.map(m=>`<option value="${m}">${ml(m)}</option>`).join('');if(months.includes(old))fm.value=old;
+ let virtualMonths=fm.value?[fm.value]:(months.length?months:[viewMonth]),virtualOps=virtualMonths.flatMap(m=>recForMonth(m)),arr=[...db.operations,...virtualOps].filter(o=>(!q.value||(`${o.label} ${o.category}`).toLowerCase().includes(q.value.toLowerCase()))&&(!fm.value||o.date.startsWith(fm.value))&&(!ft.value||o.type===ft.value)&&(!fs.value||o.status===fs.value)&&(!fa.value||o.account===fa.value)).sort((a,b)=>b.date.localeCompare(a.date));
+ sumExp.textContent=money(arr.filter(o=>o.amount<0).reduce((s,o)=>s+Math.abs(o.amount),0));sumInc.textContent=money(arr.filter(o=>o.amount>0).reduce((s,o)=>s+o.amount,0));sumPlan.textContent=money(arr.filter(o=>o.status==='planned'&&o.amount<0).reduce((s,o)=>s+Math.abs(o.amount),0));
+ opsBody.innerHTML=arr.length?arr.map(o=>`<tr><td>${new Date(o.date+'T12:00').toLocaleDateString('fr-FR')}</td><td><b>${esc(o.label)}</b><br><span class="hint">${esc(o.note||'')}</span></td><td>${esc(o.category||'')}</td><td>${o.account==='savings'?'Livret A':'Courant'}</td><td class="num ${o.amount<0?'bad':'good'}">${money(o.amount)}</td><td><button class="status ${o.status==='debited'?'ok':'pending'}" onclick="${o.virtual?`toggleRecurringOccurrence('${o.recurrenceId}','${o.occurrenceMonth}')`:`toggle('${o.id}')`}">${o.status==='debited'?'Pointée':'À venir'}</button></td><td>${o.virtual?'Récurrence':'Manuelle'}</td><td>${o.virtual?`<button class="status ${o.status==='debited'?'ok':'pending'}" onclick="toggleRecurringOccurrence('${o.recurrenceId}','${o.occurrenceMonth}')">${o.status==='debited'?'Pointée':'Prévue'}</button> <button class="btn small" onclick="editRecurringOccurrence('${o.recurrenceId}','${o.occurrenceMonth}')">Modifier</button>`:`<button class="btn small" onclick="openOp('${o.id}')">Modifier</button> <button class="btn small danger" onclick="delOp('${o.id}')">Suppr.</button>`}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">Aucune opération.</td></tr>'
+}
+function realBalance(account){
+  let n=Number(account==='current'?db.settings.current:db.settings.savings)||0;
+  const origin=db.settings.start||'0000-01-01';
+  const apply=o=>{
+    const a=Number(o.amount)||0;
+    if(o.account===account)n+=a;
+    if(o.type==='transfer'&&o.toAccount===account&&o.account!==account)n-=a;
+  };
+  db.operations.filter(o=>o.status==='debited'&&o.date>=origin).forEach(apply);
+  const start=new Date(origin+'T12:00'),end=new Date(today.slice(0,7)+'-01T12:00');
+  const cur=new Date(start.getFullYear(),start.getMonth(),1,12);
+  while(cur<=end){
+    const m=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0');
+    recForMonth(m).filter(o=>o.status==='debited').forEach(apply);
+    cur.setMonth(cur.getMonth()+1);
+  }
+  // Pointages manuels d'échéances futures : une échéance explicitement pointée
+  // doit modifier le réel, même si sa date prévue n'est pas encore atteinte.
+  Object.entries(db.occurrenceStates||{}).forEach(([key,st])=>{
+    if(st.status!=='debited')return;
+    const [id,m]=key.split('|');
+    if(m<=today.slice(0,7))return;
+    const r=db.recurring.find(x=>x.id===id);
+    if(!r||!r.active||!recurringOcc(r,m))return;
+    const a=(r.type==='income'||(r.type==='transfer'&&r.account==='savings')?1:-1)*Math.abs(Number(st.amount??r.amount)||0);
+    apply({...r,amount:a});
+  });
+  return Math.round(n*100)/100;
+}
+function recurrenceDate(r,m){let [y,mo]=m.split('-').map(Number),last=new Date(y,mo,0).getDate();return m+'-'+String(Math.min(r.day,last)).padStart(2,'0')}
+function recurringOcc(r,m){let d=new Date(recurrenceDate(r,m)+'T12:00'),start=new Date(r.start+'T12:00'),end=r.end?new Date(r.end+'T12:00'):null;if(d<new Date(start.getFullYear(),start.getMonth(),1)||end&&d>end)return false;let cur=new Date(start.getFullYear(),start.getMonth(),1),months=(d.getFullYear()-cur.getFullYear())*12+d.getMonth()-cur.getMonth(),step=r.freq==='monthly'?1:r.freq==='quarterly'?3:r.freq==='halfyear'?6:r.freq==='yearly'?12:r.freq==='customYears'?12*Math.max(1,r.interval):Math.max(1,r.interval);return months>=0&&months%step===0}
+function occurrenceKey(r,m){return r.id+'|'+m}
+function occurrenceState(r,m){return db.occurrenceStates[occurrenceKey(r,m)]||{status:recurrenceDate(r,m)<=today?'debited':'planned',amount:Math.abs(Number(r.amount)||0),date:recurrenceDate(r,m),note:''}}
+function recForMonth(m){return db.recurring.filter(r=>r.active&&recurringOcc(r,m)).map(r=>{let st=occurrenceState(r,m);return {...r,id:'virtual-'+r.id+'-'+m,recurrenceId:r.id,occurrenceMonth:m,date:st.date,amount:(r.type==='income'||(r.type==='transfer'&&r.account==='savings')?1:-1)*Math.abs(Number(st.amount??r.amount)),status:st.status, note:st.note||'',virtual:true}})}
+function toggleRecurringOccurrence(id,m){let r=db.recurring.find(x=>x.id===id);if(!r)return;let k=occurrenceKey(r,m),st=occurrenceState(r,m);st.status=st.status==='debited'?'planned':'debited';db.occurrenceStates[k]=st;save();renderAll();toast(st.status==='debited'?'Échéance pointée':'Échéance remise en prévu')}
+function editRecurringOccurrence(id,m){let r=db.recurring.find(x=>x.id===id);if(!r)return;let st=occurrenceState(r,m),date=prompt('Date de cette échéance',st.date);if(!date)return;let amount=prompt('Montant de cette échéance (€)',String(st.amount));if(amount===null)return;let note=prompt('Note pour cette échéance',st.note||'');db.occurrenceStates[occurrenceKey(r,m)]={...st,date,amount:Math.abs(Number(amount)||0),note:note??st.note};save();renderAll();toast('Échéance modifiée')}
+function monthTotals(m){let all=[...db.operations.filter(o=>o.date.startsWith(m)),...recForMonth(m)],income=0,fixed=0,occ=0,save=0;all.forEach(o=>{if(o.account==='savings')return; if(o.type==='income')income+=Math.max(0,o.amount);else if((o.category||'').startsWith('Épargne'))save+=Math.abs(o.amount);else if(o.virtual)fixed+=Math.abs(o.amount);else occ+=Math.abs(o.amount)});return{income,fixed,occ,saving:save}}
+function projection(n=120){
+ let cur=Number(db.settings.current)||0,sav=Number(db.settings.savings)||0;
+ const origin=(db.settings.start||today).slice(0,7),base=new Date(viewMonth+'-01T12:00'),out=[],rows={};
+ let d=new Date(origin+'-01T12:00'),last=new Date(base.getFullYear(),base.getMonth()+n-1,1,12),guard=0;
+ while(d<=last&&guard++<500){
+  let m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  let ops=[...db.operations.filter(o=>o.date.startsWith(m)),...recForMonth(m)];
+  let start=cur,income=0,fixed=0,occ=0,saving=0;
+  ops.forEach(o=>{
+   const a=Number(o.amount)||0;
+   if(o.account==='current'){
+    cur+=a;
+    if(a>=0)income+=a;else if(o.type==='transfer')saving+=-a;else if(o.virtual)fixed+=-a;else occ+=-a;
+   }else if(o.type==='transfer'&&o.toAccount==='current')cur-=a;
+   if(o.account==='savings')sav+=a;
+   else if(o.type==='transfer'&&o.toAccount==='savings')sav-=a;
+  });
+  rows[m]={m,start,income,fixed,occ,saving,end:cur,sav};d.setMonth(d.getMonth()+1);
+ }
+ for(let i=0;i<n;i++){let x=new Date(base.getFullYear(),base.getMonth()+i,1),m=x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0');out.push(rows[m]||{m,start:cur,income:0,fixed:0,occ:0,saving:0,end:cur,sav})}
+ return out;
+}
+function renderDash(){dMonth.textContent=ml(viewMonth);dCurrent.textContent=money(realBalance('current'));dSave.textContent=money(realBalance('savings'));dCurrentInput.value=db.settings.current??0;dSaveInput.value=db.settings.savings??0;let ops=[...db.operations.filter(o=>o.date.startsWith(viewMonth)),...recForMonth(viewMonth)],spent=ops.filter(o=>o.amount<0).reduce((s,o)=>s+Math.abs(o.amount),0),planned=ops.filter(o=>o.status==='planned'&&o.amount<0&&o.account==='current').reduce((s,o)=>s+Math.abs(o.amount),0);dSpent.textContent=money(spent);dSpentHint.textContent=ops.length+' opération(s) saisie(s)';dPlanned.textContent=money(planned);dEnd.textContent=money(projection(1)[0].end);dashOps.innerHTML=ops.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Opération</th><th>Montant</th><th>État</th><th></th></tr></thead><tbody>${ops.sort((a,b)=>b.date.localeCompare(a.date)).map(o=>`<tr><td>${new Date(o.date+'T12:00').toLocaleDateString('fr-FR')}</td><td>${esc(o.label)}<br><span class="hint">${esc(o.category||'')}</span></td><td class="num ${o.amount<0?'bad':'good'}">${money(o.amount)}</td><td><span class="status ${o.status==='debited'?'ok':'pending'}">${o.status==='debited'?'Pointée':'À venir'}</span></td><td>${o.virtual?`<button class="status ${o.status==='debited'?'ok':'pending'}" onclick="toggleRecurringOccurrence('${o.recurrenceId}','${o.occurrenceMonth}')">${o.status==='debited'?'Pointée':'Prévue'}</button> <button class="btn small" onclick="editRecurringOccurrence('${o.recurrenceId}','${o.occurrenceMonth}')">Modifier</button>`:`<button class="btn small" onclick="openOp('${o.id}')">Modifier</button>`}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Aucune opération saisie pour ce mois.</div>';let p=projection(12);chart('dashChart',p.map(x=>x.m),p.map(x=>x.end))}
+function moveMonth(n){let d=new Date(viewMonth+'-01T12:00');d.setMonth(d.getMonth()+n);viewMonth=d.toISOString().slice(0,7);renderDash()}
+function chart(id,labels,vals){let c=document.getElementById(id),ctx=c.getContext('2d'),w=c.clientWidth||700,h=c.clientHeight||300,d=devicePixelRatio||1;c.width=w*d;c.height=h*d;ctx.scale(d,d);let min=Math.min(...vals),max=Math.max(...vals),r=max-min||1,p={l:58,r:15,t:18,b:38};ctx.font='12px system-ui';ctx.strokeStyle='#dce4ea';ctx.fillStyle='#6b7885';for(let i=0;i<5;i++){let y=p.t+(h-p.t-p.b)*i/4;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke();ctx.fillText(money(max-(max-min)*i/4),2,y+4)}ctx.strokeStyle='#2b628d';ctx.lineWidth=2.5;ctx.beginPath();vals.forEach((v,i)=>{let x=p.l+(w-p.l-p.r)*(i/(vals.length-1||1)),y=p.t+(h-p.t-p.b)*(max-v)/r;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();ctx.textAlign='center';labels.forEach((l,i)=>{if(i%Math.max(1,Math.ceil(labels.length/7))===0){let x=p.l+(w-p.l-p.r)*(i/(labels.length-1||1));ctx.fillText(l.slice(5),x,h-12)}});ctx.textAlign='left'}
+function projRange(y){projectionYears=y;renderProj()}
+function renderProj(){let arr=projection(projectionYears*12);chart('projChart',arr.map(x=>x.m),arr.map(x=>x.end));projBody.innerHTML=arr.map(x=>`<tr><td>${ml(x.m)}</td><td class="num">${money(x.start)}</td><td class="num good">${money(x.income)}</td><td class="num bad">${money(x.fixed)}</td><td class="num bad">${money(x.occ)}</td><td class="num bad">${money(x.saving)}</td><td class="num ${x.end<0?'bad':'good'}"><b>${money(x.end)}</b></td><td class="num">${money(x.sav)}</td></tr>`).join('')}
+function freqLabel(r){return r.freq==='monthly'?'Tous les mois':r.freq==='quarterly'?'Tous les 3 mois':r.freq==='halfyear'?'Tous les 6 mois':r.freq==='yearly'?'Tous les ans':r.freq==='customYears'?'Tous les '+r.interval+' ans':'Tous les '+r.interval+' mois'}
+function nextDate(r){let d=new Date(r.start+'T12:00'),now=new Date();let step=r.freq==='monthly'?1:r.freq==='quarterly'?3:r.freq==='halfyear'?6:r.freq==='yearly'?12:r.freq==='customYears'?12*r.interval:r.interval;while(d<now){d.setMonth(d.getMonth()+step);if(r.end&&d>new Date(r.end+'T12:00'))return '—'}return d.toLocaleDateString('fr-FR')}
+function openRec(id=null){editRecId=id;let r=db.recurring.find(x=>x.id===id);recTitle.textContent=r?'Modifier la récurrence':'Nouvelle récurrence';rLabel.value=r?.label||'';rType.value=r?.type||'expense';rAmount.value=r?.amount||'';rAccount.value=r?.account||'current';rDay.value=r?.day||5;rFreq.value=r?.freq||'monthly';rInterval.value=r?.interval||2;rStart.value=r?.start||today;rEnd.value=r?.end||'';rActive.value=String(r?.active??true);fillCat('rCat',rType.value,r?.category||'');openM('recModal')}
+function saveRec(){let r={id:editRecId||uid(),label:rLabel.value.trim(),type:rType.value,amount:Math.abs(Number(rAmount.value)||0),account:rAccount.value,category:rCat.value,toAccount:rType.value==='transfer'?(rAccount.value==='current'?'savings':'current'):undefined,day:Math.min(31,Math.max(1,Number(rDay.value)||1)),freq:rFreq.value,interval:Math.max(1,Number(rInterval.value)||1),start:rStart.value,end:rEnd.value,active:rActive.value==='true'};if(!r.label||!r.amount||!r.start)return toast('Libellé, montant et première échéance sont obligatoires.');let i=db.recurring.findIndex(x=>x.id===r.id);i<0?db.recurring.push(r):db.recurring[i]=r;save();closeM('recModal');renderAll();toast('Récurrence enregistrée')}
+function delRec(id){if(confirm('Supprimer cette récurrence ?')){db.recurring=db.recurring.filter(r=>r.id!==id);save();renderAll()}}
+function renderRec(){recBody.innerHTML=db.recurring.length?db.recurring.map(r=>`<tr><td><b>${esc(r.label)}</b><br><span class="hint">${esc(r.category||'')}</span></td><td>${r.type==='income'?'Recette':r.type==='transfer'?'Virement':'Dépense'}</td><td>${freqLabel(r)}</td><td>${nextDate(r)}</td><td class="num">${money(r.amount)}</td><td>${r.account==='savings'?'Livret A':'Courant'}</td><td>${new Date(r.start+'T12:00').toLocaleDateString('fr-FR')} → ${r.end?new Date(r.end+'T12:00').toLocaleDateString('fr-FR'):'∞'}</td><td>${r.active?'Oui':'Non'}</td><td><button class="btn small" onclick="openRec('${r.id}')">Modifier</button> <button class="btn small danger" onclick="delRec('${r.id}')">Suppr.</button></td></tr>`).join(''):'<tr><td colspan="9" class="empty">Aucune récurrence.</td></tr>'}
+function openCat(){cType.value='expense';cMain.value='';cSub.value='';openM('catModal')}
+function saveCat(){if(!cMain.value.trim()||!cSub.value.trim())return toast('Catégorie et sous-catégorie obligatoires.');db.categories.push([cType.value,cMain.value.trim(),cSub.value.trim()]);save();closeM('catModal');renderCat();toast('Catégorie ajoutée')}
+function renderCat(){catBody.innerHTML=db.categories.map((c,i)=>`<tr><td>${c[0]==='income'?'Recette':c[0]==='transfer'?'Virement':'Dépense'}</td><td>${esc(c[1])}</td><td>${esc(c[2])}</td><td><button class="btn small danger" onclick="delCat(${i})">Suppr.</button></td></tr>`).join('')}
+function delCat(i){if(confirm('Supprimer cette sous-catégorie ?')){db.categories.splice(i,1);save();renderCat()}}
+function renderSet(){sCurrent.value=db.settings.current;sSave.value=db.settings.savings;sStart.value=db.settings.start;sYears.value=db.settings.years;}
+function setRealStartingBalance(account){const input=account==='current'?dCurrentInput:dSaveInput;const n=Number(input.value);if(input.value.trim()===''||!Number.isFinite(n)){toast('Saisir un montant valide');return;}db.settings[account]=n;save();renderAll();toast('Montant de départ enregistré');}
+function saveSettings(){db.settings.current=Number(sCurrent.value)||0;db.settings.savings=Number(sSave.value)||0;db.settings.start=sStart.value||today;db.settings.years=Math.max(1,Math.min(30,Number(sYears.value)||10));save();renderAll();toast('Réglages enregistrés')}
+function backup(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));a.download='mon-budget-v3-3-sauvegarde.json';a.click()}
+
+function backupForDrive(){
+  const stamp=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));
+  a.download='Mon_Budget_sauvegarde_'+stamp+'.json';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('Sauvegarde créée : tu peux la déposer dans OneDrive ou Google Drive.');
+}
+restore.onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{db=JSON.parse(r.result);save();renderAll();toast('Sauvegarde restaurée')}catch{toast('Fichier invalide')}};r.readAsText(f)}
+function resetAll(){if(confirm('Effacer toutes les données ?')){db=clone(defaults);save();renderAll()}}
+function exportCSV(){let a=document.createElement('a'),rows=[['Mois','Solde début','Recettes','Récurrents/fixes','Occasionnelles','Livret A','Solde fin','Livret A'],...projection(120).map(x=>[x.m,x.start,x.income,x.fixed,x.occ,x.saving,x.end,x.sav])];a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('\\n')],{type:'text/csv;charset=utf-8'}));a.download='projection-10-ans.csv';a.click()}
+
+function migrateLivretTransfer(){
+ const a=db.recurring.find(r=>r.label==='VIREMENT LIVRET A'&&r.account==='current'&&Number(r.amount)===1000);
+ const b=db.recurring.find(r=>r.label==='VIREMENT COMPTE COURANT'&&r.account==='savings'&&Number(r.amount)===1000);
+ if(!a||!b){toast('Paire de virements non trouvée : aucune modification');return}
+ if(!confirm('Transformer les deux écritures récurrentes de 1 000 € en un seul virement automatique ? Une sauvegarde de sécurité sera conservée.'))return;
+ const backup=JSON.stringify(db);localStorage.setItem('monBudgetV34_avant_conversion',backup);
+ a.type='transfer';a.toAccount='savings';a.category='Épargne / Versement Livret A';
+ // Preserve the receiving recurrence as an inactive historical record, not delete it.
+ b.active=false;b.migratedInto=a.id;
+ for(const [k,v] of Object.entries(db.occurrenceStates)){if(k.startsWith(b.id+'|')){const month=k.split('|')[1],ak=a.id+'|'+month; if(!db.occurrenceStates[ak])db.occurrenceStates[ak]={...v};}}
+ save();renderAll();toast('Virement converti, ancienne écriture conservée inactive');
+}
+function renderAll(){renderDash();renderOps();renderRec();renderCat();renderSet()}
+window.onresize=()=>{if(document.getElementById('dash').style.display!=='none')renderDash();if(document.getElementById('proj').style.display!=='none')renderProj()};
+rFreq.onchange=()=>{rInterval.disabled=['monthly','quarterly','halfyear','yearly'].includes(rFreq.value);if(rInterval.disabled)rInterval.value=1};
+renderAll();
+setInterval(()=>{if(document.visibilityState==='visible'&&driveToken&&!driveBusy)driveSync()},60000);
+</script>
+<div id="transferMigration" style="position:fixed;bottom:12px;right:12px;z-index:99;background:#fff;border:1px solid #ccd;padding:10px;border-radius:12px;max-width:310px;box-shadow:0 3px 16px #0002"><strong>V3.4 · Virements</strong><p style="font-size:12px">Conversion facultative de tes deux virements récurrents de 1 000 €. Sauvegarde automatique avant conversion.</p><button class="btn primary" onclick="migrateLivretTransfer()">Convertir les deux virements</button><button class="btn small" onclick="document.getElementById('transferMigration').remove()">Plus tard</button></div></body>
 </html>
